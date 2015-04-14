@@ -1,3 +1,8 @@
+To win Google code jam you need to be really good, hell I don't even know if I am going to pass round 1. 
+This is why I build this library. To get atleas some chance.
+
+You are welcome to use this code as you want as long you provide me a feedback.
+
 Futures
 -------
  - Generate source code and output file.
@@ -65,5 +70,12 @@ Testing
    - override the methode generate(), this is where you actually generating the input, it will be called 100 times, you only need to generate 1 test case and use some random.
    - implemt onTestProcess to compare it with your brute
  Once you find an error, it will tell you the case number. Pass this number to setGenerateMode, and it will use your last generated input with that test case.
+
+Dependencies
+-------------
+ **File processing**
+ - com.google.code.gson:gson:1.2.2
+ - org.zeroturnaround:zt-zip:1.8
+ **Java version: 1.7.0_60**
 
 
