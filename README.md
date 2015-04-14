@@ -1,12 +1,12 @@
 Project Structure
 -----------------
 
-input/ the input files, those will be renamed to java main class file
-output/source.zip your source code excluding other main files
-output/output.txt the solution
-settings/ directory created by the library
-src/ Your core files
-src/com.gazman/ is where the library lives
+ - *input/* the input files, those will be renamed to java main class file
+ - *output/source.zip* your source code excluding other main files
+ - *output/output.txt* the solution
+ - *settings/* directory created by the library
+ - *src/* Your core files
+ - *src/com.gazman/* is where the library lives
 
 Usage
 -----
@@ -15,23 +15,34 @@ Usage
  2. Create new main file(with the method main()) in the default package, use Processor template for that.
    
 ```Java
-   #parse("File Header.java")
-   import com.gazman.processor.Parser;
-   import com.gazman.processor.Processor;
-   
-   /**
-    * Created by ilya gazman on 3/14/15.
-    */
-   public class ${NAME} extends Processor{
-   
-       public static void main(String arg[]){
-           Parser parser = new Parser();
-           parser.load(new ${NAME}());
-       }
-       
-       @Override
-       public void onProcess(int currentCase) {
-           
-       }
-   }
+   import com.gazman.processor.*;
+
+/**
+ * Created by ${USER} on ${DATE}.
+ * Dependencies
+ * File processing
+ * - com.google.code.gson:gson:1.2.2
+ * - org.zeroturnaround:zt-zip:1.8
+ * Java version 1.7.0_60
+ */
+public class ${NAME} extends ProcessTask{
+
+    public static void main(String arg[]) {
+        Processor processor = new Processor();
+//        processor.setTestMode();
+//        processor.setGenerateMode(0);
+        processor.init(${NAME}.class);
+        processor.process();
+    }
+
+    @Override
+    protected void onParse(Parser parser) {
+        
+    }
+
+    @Override
+    protected void onProcess(int caseNumber, OutputManager out, Assert tester) {
+
+    }
+}
 ```   
