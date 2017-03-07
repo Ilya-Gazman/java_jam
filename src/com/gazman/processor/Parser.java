@@ -106,6 +106,14 @@ public class Parser {
         return list;
     }
 
+    public String[] readStingArray(int count) {
+        String[] strings = new String[count];
+        for (int i = 0; i < strings.length; i++) {
+            strings[i] = readString();
+        }
+        return strings;
+    }
+
     public class SequenceArray {
         private StringBuilder stringBuilder = new StringBuilder();
         private int position = -1;

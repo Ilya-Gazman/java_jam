@@ -1,14 +1,14 @@
 package com.gazman.processor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Created by ilyagazman on 3/11/15.
+ * Created by Ilya Gazman on 3/11/15.
  */
+@SuppressWarnings("unused")
 public class Processor {
 
     public int numberOfTestCasesToGenerate = 100;
@@ -18,60 +18,74 @@ public class Processor {
     protected final Parser parser = new Parser();
     private FileManager fileManager;
 
-    private static final ExecutorService executorService;
-    private static final ExecutorService outputService = Executors.newFixedThreadPool(1);
-    static {
-        int cores = Runtime.getRuntime().availableProcessors();
-        executorService = Executors.newFixedThreadPool(cores);
-    }
+    private ExecutorService executorService;
+    private ExecutorService outputService = Executors.newFixedThreadPool(1);
 
     private Class<? extends ProcessTask> task;
     private long startingTime = System.currentTimeMillis();
     private boolean testMode;
     private boolean disposed;
-    private boolean genertateMode;
+    private boolean generateMode;
     private int generatedCaseNumber;
+    private int executesCount = Runtime.getRuntime().availableProcessors() * 2;
 
-    public void init(Class<? extends ProcessTask> task) {
+    public Processor(Class<? extends  ProcessTask> task){
         this.task = task;
+        init();
+    }
+
+    public void setExecutesCount(int executesCount) {
+        this.executesCount = executesCount;
+    }
+
+    private void init() {
+        executorService = Executors.newFixedThreadPool(executesCount);
         fileManager = new FileManager();
         fileManager.setTestMode(testMode);
-        fileManager.setGenerateMode(genertateMode && generatedCaseNumber == 0);
+        fileManager.setGenerateMode(generateMode && generatedCaseNumber == 0);
         fileManager.load(task.getSimpleName());
         parser.init(fileManager);
+
+        onInit();
+    }
+
+    protected void onInit() {
+
     }
 
     public void process() {
-        if(genertateMode){
+        if (generateMode) {
             generate();
         }
-        numberOfCases = parser.readInt() + 1;
+        readNumberOfCases();
         for (int i = 1; i < numberOfCases && !disposed; i++) {
             final int caseNumber = i;
             ProcessTask processTask = createTask();
-            processTask.onParse(parser);
+            processTask.onCaseParse(parser);
             final ProcessTask finalProcessTask = processTask;
-            if(!genertateMode || generatedCaseNumber == 0 || generatedCaseNumber == caseNumber){
-                executorService.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        execute(caseNumber, finalProcessTask);
-                    }
-                });
-                if(genertateMode && caseNumber != 0 && generatedCaseNumber == caseNumber){
+            if (!generateMode || generatedCaseNumber == 0 || generatedCaseNumber == caseNumber) {
+                executorService.execute(() -> execute(caseNumber, finalProcessTask));
+                if (generateMode && caseNumber != 0 && generatedCaseNumber == caseNumber) {
                     break;
                 }
             }
         }
     }
 
+    protected void readNumberOfCases() {
+        if(numberOfCases > 0){
+            return;
+        }
+        numberOfCases = parser.readInt() + 1;
+    }
+
     private void generate() {
-        if(generatedCaseNumber == 0){
+        if (generatedCaseNumber == 0) {
             ProcessTask processTask = createTask();
             fileManager.generateOutput(numberOfTestCasesToGenerate + "\n");
             for (int i = 0; i < numberOfTestCasesToGenerate; i++) {
                 String generate = processTask.generate();
-                if(generate == null){
+                if (generate == null) {
                     throw new Error("Nothing is been generated");
                 }
                 fileManager.generateOutput(generate);
@@ -95,26 +109,21 @@ public class Processor {
 
     private void execute(int caseNumber, ProcessTask processTask) {
         final StringBuilder stringBuilder = new StringBuilder();
-        OutputManager outputManager = new OutputManager(new OutputCallback() {
-            @Override
-            public void onOutput(String message) {
-                stringBuilder.append(message);
-            }
-        });
+        OutputManager outputManager = new OutputManager(stringBuilder::append);
         outputManager.print(getPrefix(caseNumber));
         Assert anAssert = new Assert();
         anAssert.currentCase = caseNumber;
-        processTask.onProcess(caseNumber, outputManager, anAssert);
+        processTask.onCaseProcess(caseNumber, outputManager, anAssert);
         outputManager.print("\n");
         final Task task = new Task();
         task.caseNumber = caseNumber;
         task.solution = stringBuilder.toString();
-        if(testMode){
+        if (testMode) {
             stringBuilder.setLength(0);
             outputManager.print(getPrefix(caseNumber));
             processTask.onTestProcess(caseNumber, outputManager, anAssert);
             outputManager.print("\n");
-            if(stringBuilder.length() > 0 && !task.solution.equals(stringBuilder.toString())){
+            if (stringBuilder.length() > 0 && !task.solution.equals(stringBuilder.toString())) {
                 System.err.println("*******************************");
                 System.err.println("*******************************");
                 System.err.println("**************** Failed on case " + caseNumber);
@@ -123,12 +132,7 @@ public class Processor {
                 System.err.println();
             }
         }
-        outputService.execute(new Runnable() {
-            @Override
-            public void run() {
-                printTask(task);
-            }
-        });
+        outputService.execute(() -> printTask(task));
     }
 
     protected String getPrefix(int currentCase) {
@@ -136,29 +140,24 @@ public class Processor {
     }
 
     private void printTask(Task newTask) {
-        if(genertateMode && generatedCaseNumber != 0){
+        if (generateMode && generatedCaseNumber != 0) {
             fileManager.onOutput(newTask.solution);
             System.out.print(newTask.solution);
             dispose();
             return;
         }
         tasks.add(newTask);
-        Collections.sort(tasks, new Comparator<Task>() {
-            @Override
-            public int compare(Task o1, Task o2) {
-                return Integer.compare(o1.caseNumber, o2.caseNumber);
-            }
-        });
-        if(newTask.caseNumber == nextTask){
+        tasks.sort(Comparator.comparingInt(o -> o.caseNumber));
+        if (newTask.caseNumber == nextTask) {
             for (Task task : tasks) {
-                if(task.caseNumber == nextTask){
+                if (task.caseNumber == nextTask) {
                     nextTask++;
                     fileManager.onOutput(task.solution);
                     System.out.print(task.solution);
                 }
             }
         }
-        if(nextTask == numberOfCases){
+        if (nextTask == numberOfCases) {
             dispose();
         }
     }
@@ -167,7 +166,7 @@ public class Processor {
         fileManager.dispose();
         executorService.shutdown();
         outputService.shutdown();
-        disposed= true;
+        disposed = true;
         long timePath = System.currentTimeMillis() - startingTime;
         System.out.println("Completed in " + timePath);
     }
@@ -178,10 +177,10 @@ public class Processor {
 
     public void setGenerateMode(int caseNumber) {
         this.generatedCaseNumber = caseNumber;
-        genertateMode = true;
+        generateMode = true;
     }
 
-    private class Task{
+    private class Task {
         int caseNumber;
         String solution;
     }

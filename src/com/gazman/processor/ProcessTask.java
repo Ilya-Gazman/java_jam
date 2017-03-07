@@ -5,9 +5,9 @@ package com.gazman.processor;
  */
 public abstract class ProcessTask {
 
-    protected abstract void onParse(Parser parser);
+    protected abstract void onCaseParse(Parser parser);
 
-    protected abstract void onProcess(int caseNumber, OutputManager out, Assert tester);
+    protected abstract void onCaseProcess(int caseNumber, OutputManager out, Assert tester);
 
 
     protected void onTestProcess(int caseNumber, OutputManager out, Assert tester) {}
